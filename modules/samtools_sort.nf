@@ -14,12 +14,7 @@ process SAMTOOLS_SORT {
     output:
     tuple val(sample_id), path("${sample_id}.sorted.bam"), path("${sample_id}.sorted.bam.bai"), emit: sorted_bam
 
-    stub:
-    """
-    echo "samtools sort -@ ${task.cpus} -o ${sample_id}.sorted.bam ${bam} && samtools index ${sample_id}.sorted.bam"
-    touch ${sample_id}.sorted.bam
-    touch ${sample_id}.sorted.bam.bai
-    """
+    
 
     script:
     """
@@ -29,6 +24,13 @@ process SAMTOOLS_SORT {
         ${bam}
 
     samtools index ${sample_id}.sorted.bam
+    """
+
+    stub:
+    """
+    echo "samtools sort -@ ${task.cpus} -o ${sample_id}.sorted.bam ${bam} && samtools index ${sample_id}.sorted.bam"
+    touch ${sample_id}.sorted.bam
+    touch ${sample_id}.sorted.bam.bai
     """
 
 }

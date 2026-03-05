@@ -8,36 +8,23 @@
         FASTP           → adapter trimming and quality filtering
         BWA_MEM         → map reads to reference genome
         SAMTOOLS_SORT   → coordinate-sort and index BAM
-        MARK_DUPLICATES → mark PCR duplicates
-        BASE_RECALIBRATOR / APPLY_BQSR → base quality score recalibration
-        HAPLOTYPECALLER → per-sample GVCF variant calling
-        GENOTYPE_GVCFS  → joint genotyping across all samples
-        VARIANT_FILTRATION → hard-filter SNPs and indels
+        FREEBAYES       → per-sample variant calling and summary report
 ----------------------------------------------------------------------------------------
 */
 
 include { FASTQC            } from '../modules/fastqc'
 include { FASTP             } from '../modules/fastp'
+include { MULTIQC           } from '../modules/multiqc'
 include { BWA_MEM           } from '../modules/bwa_mem'
 include { SAMTOOLS_SORT     } from '../modules/samtools_sort'
-include { MARK_DUPLICATES   } from '../modules/mark_duplicates'
-include { BASE_RECALIBRATOR } from '../modules/base_recalibrator'
-include { APPLY_BQSR        } from '../modules/apply_bqsr'
-include { HAPLOTYPECALLER   } from '../modules/haplotypecaller'
-include { GENOTYPE_GVCFS    } from '../modules/genotype_gvcfs'
-include { VARIANT_FILTRATION} from '../modules/variant_filtration'
+include { FREEBAYES         } from '../modules/freebayes'
 
 workflow WGS {
 
     take:
     reads           // channel: [ val(sample_id), path(fastq_1), path(fastq_2) ]
     genome          // path: reference genome FASTA
-    genome_fai      // path: reference genome FAI index
-    genome_dict     // path: reference genome sequence dictionary
-    genome_index    // path: BWA-MEM2 index directory
-    known_sites     // list of paths: VCFs with known variant sites (for BQSR)
-    known_sites_tbi // list of paths: TBI indexes for known_sites VCFs
-    intervals       // val: optional interval string for genotyping (can be null/"")
+    genome_index    // val: BWA-MEM2 index prefix (defaults to genome path)
 
     main:
 
@@ -46,6 +33,15 @@ workflow WGS {
 
     // ----- Trim adapters and low-quality bases --------------------------------
     FASTP(reads)
+
+    // ----- Aggregate QC reports -------------------------------------------------
+    ch_multiqc_files = FASTQC.out.zip
+        .map { _sample_id, fastqc_zip -> fastqc_zip }
+        .mix(FASTP.out.html)
+        .mix(FASTP.out.json)
+        .collect()
+
+    MULTIQC(ch_multiqc_files)
 
     // ----- Map trimmed reads to reference genome ------------------------------
     BWA_MEM(
@@ -57,68 +53,10 @@ workflow WGS {
     // ----- Coordinate-sort and index the BAM ----------------------------------
     SAMTOOLS_SORT(BWA_MEM.out.bam)
 
-    // ----- Mark PCR duplicates ------------------------------------------------
-    MARK_DUPLICATES(SAMTOOLS_SORT.out.sorted_bam)
-
-    // ----- Base quality score recalibration -----------------------------------
-    BASE_RECALIBRATOR(
-        MARK_DUPLICATES.out.bam,
-        genome,
-        genome_fai,
-        genome_dict,
-        known_sites,
-        known_sites_tbi
-    )
-
-    // Join the markdup BAM with its recal table
-    ch_bqsr_input = MARK_DUPLICATES.out.bam
-        .join(BASE_RECALIBRATOR.out.recal_table, by: 0)
-        .map { sample_id, bam, bai, recal_table -> tuple(sample_id, bam, bai, recal_table) }
-
-    APPLY_BQSR(
-        ch_bqsr_input,
-        genome,
-        genome_fai,
-        genome_dict
-    )
-
-    // ----- Per-sample variant calling (GVCF mode) -----------------------------
-    HAPLOTYPECALLER(
-        APPLY_BQSR.out.bam,
-        genome,
-        genome_fai,
-        genome_dict
-    )
-
-    // ----- Build GenomicsDB sample map and run joint genotyping ---------------
-    // Collect all per-sample GVCFs and build a two-column sample map file
-    ch_sample_map = HAPLOTYPECALLER.out.gvcf
-        .collect { sample_id, gvcf, tbi -> "${sample_id}\t${gvcf}" }
-        .map     { lines -> lines.join('\n') }
-        .collectFile(name: 'sample_map.tsv', newLine: false)
-
-    ch_all_gvcfs    = HAPLOTYPECALLER.out.gvcf.map { sid, g, t -> g }.collect()
-    ch_all_gvcf_tbi = HAPLOTYPECALLER.out.gvcf.map { sid, g, t -> t }.collect()
-
-    GENOTYPE_GVCFS(
-        ch_sample_map,
-        ch_all_gvcfs,
-        ch_all_gvcf_tbi,
-        genome,
-        genome_fai,
-        genome_dict,
-        intervals ?: ""
-    )
-
-    // ----- Hard-filter SNPs and indels ----------------------------------------
-    VARIANT_FILTRATION(
-        GENOTYPE_GVCFS.out.vcf,
-        GENOTYPE_GVCFS.out.tbi,
-        genome,
-        genome_fai,
-        genome_dict,
-        params.snp_filter_expr,
-        params.indel_filter_expr
+    // ----- Variant calling and reporting ---------------------------------------
+    FREEBAYES(
+        SAMTOOLS_SORT.out.sorted_bam,
+        genome
     )
 
     emit:
@@ -126,10 +64,10 @@ workflow WGS {
     fastqc_zip        = FASTQC.out.zip
     fastp_html        = FASTP.out.html
     fastp_json        = FASTP.out.json
-    markdup_metrics   = MARK_DUPLICATES.out.metrics
-    final_bam         = APPLY_BQSR.out.bam
-    gvcf              = HAPLOTYPECALLER.out.gvcf
-    joint_vcf         = GENOTYPE_GVCFS.out.vcf
-    filtered_vcf      = VARIANT_FILTRATION.out.vcf
+    multiqc_report    = MULTIQC.out.report
+    multiqc_data      = MULTIQC.out.data
+    final_bam         = SAMTOOLS_SORT.out.sorted_bam
+    variants_vcf      = FREEBAYES.out.vcf
+    variant_report    = FREEBAYES.out.report
 
 }

@@ -16,14 +16,7 @@ process FASTP {
     path "${sample_id}_fastp.html",                                                                          emit: html
     path "${sample_id}_fastp.json",                                                                          emit: json
 
-    stub:
-    """
-    echo "fastp --in1 ${fastq_1} --in2 ${fastq_2} --out1 ${sample_id}_1.trimmed.fastq.gz --out2 ${sample_id}_2.trimmed.fastq.gz --html ${sample_id}_fastp.html --json ${sample_id}_fastp.json --thread ${task.cpus}"
-    touch ${sample_id}_1.trimmed.fastq.gz
-    touch ${sample_id}_2.trimmed.fastq.gz
-    touch ${sample_id}_fastp.html
-    touch ${sample_id}_fastp.json
-    """
+
 
     script:
     """
@@ -35,6 +28,15 @@ process FASTP {
         --html ${sample_id}_fastp.html \\
         --json ${sample_id}_fastp.json \\
         --thread ${task.cpus}
+    """
+
+    stub:
+    """
+    echo "fastp --in1 ${fastq_1} --in2 ${fastq_2} --out1 ${sample_id}_1.trimmed.fastq.gz --out2 ${sample_id}_2.trimmed.fastq.gz --html ${sample_id}_fastp.html --json ${sample_id}_fastp.json --thread ${task.cpus}"
+    touch ${sample_id}_1.trimmed.fastq.gz
+    touch ${sample_id}_2.trimmed.fastq.gz
+    touch ${sample_id}_fastp.html
+    touch ${sample_id}_fastp.json
     """
 
 }

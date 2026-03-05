@@ -10,15 +10,13 @@
         nextflow run main.nf \\
             --input      samplesheet.csv \\
             --outdir     results \\
-            --genome     /path/to/genome.fa \\
-            --known_sites /path/to/dbsnp.vcf.gz
+            --genome     /path/to/genome.fa
 
     Stub / dry-run (no real tools needed):
         nextflow run main.nf -stub \\
             --input      samplesheet.csv \\
             --outdir     results \\
-            --genome     /path/to/genome.fa \\
-            --known_sites /path/to/dbsnp.vcf.gz
+            --genome     /path/to/genome.fa
 ----------------------------------------------------------------------------------------
 */
 
@@ -51,7 +49,7 @@ def validateParams() {
 //  Expected columns: sample_id, fastq_1, fastq_2
 
 def parseSamplesheet(csv_path) {
-    Channel
+    channel
         .fromPath(csv_path)
         .splitCsv(header: true, strip: true)
         .map { row ->
@@ -75,8 +73,7 @@ workflow {
      input       : ${params.input}
      outdir      : ${params.outdir}
      genome      : ${params.genome}
-     known_sites : ${params.known_sites}
-     intervals   : ${params.containsKey('intervals') ? params.intervals : 'none'}
+        genome_index: ${params.genome_index ?: params.genome}
     ============================================================
     """.stripIndent()
 
@@ -85,31 +82,16 @@ workflow {
 
     // Resolve reference genome files
     ch_genome      = file(params.genome,                checkIfExists: true)
-    ch_genome_fai  = file("${params.genome}.fai",       checkIfExists: false)
-    ch_genome_dict = file(params.genome.replaceAll(/\.(fa|fasta)$/, '.dict'), checkIfExists: false)
-
-    // Resolve BWA-MEM2 index (directory or same prefix as genome)
+    // Resolve BWA-MEM2 index prefix (defaults to genome path)
     ch_genome_index = params.genome_index
-        ? file(params.genome_index, checkIfExists: true)
-        : file(params.genome,       checkIfExists: true)   // bwa-mem2 accepts the FASTA when index files are co-located
-
-    // Known sites for BQSR
-    ch_known_sites     = params.known_sites     ? params.known_sites.collect     { f -> file(f, checkIfExists: true) } : []
-    ch_known_sites_tbi = params.known_sites_tbi ? params.known_sites_tbi.collect { f -> file(f, checkIfExists: true) } : []
-
-    // Optional interval string (e.g. "chr1,chr2" or path to BED/interval_list)
-    def intervals = params.containsKey('intervals') ? params.intervals : null
+        ? params.genome_index
+        : params.genome
 
     // Run the bioinformatics workflow
     WGS(
         ch_reads,
         ch_genome,
-        ch_genome_fai,
-        ch_genome_dict,
-        ch_genome_index,
-        ch_known_sites,
-        ch_known_sites_tbi,
-        intervals
+        ch_genome_index
     )
 
 }

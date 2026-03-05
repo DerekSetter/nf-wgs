@@ -1,0 +1,2 @@
+sample_id,fastq_1,fastq_2
+ECOLI_MINI,test/mini_ecoli/reads/ECOLI_MINI_R1.fastq.gz,test/mini_ecoli/reads/ECOLI_MINI_R2.fastq.gz

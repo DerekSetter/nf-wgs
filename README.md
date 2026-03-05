@@ -10,16 +10,11 @@ The pipeline covers the following steps in order:
 |------|------|-------------|
 | 1 | FastQC | Quality control of raw reads |
 | 2 | fastp | Adapter trimming and quality filtering |
-| 3 | BWA-MEM2 | Map reads to a reference genome |
-| 4 | samtools sort | Coordinate-sort and index the BAM |
-
-**change to sambamba and freebayes**
-| 5 | GATK MarkDuplicates | Mark (and flag) PCR duplicates |
-| 6 | GATK BaseRecalibrator | Compute base quality score recalibration table |
-| 7 | GATK ApplyBQSR | Apply BQSR table to produce a recalibrated BAM |
-| 8 | GATK HaplotypeCaller | Per-sample variant calling in GVCF mode |
-| 9 | GATK GenotypeGVCFs | Joint genotyping across all samples |
-| 10 | GATK VariantFiltration | Hard-filter SNPs and indels |
+| 3 | MultiQC | Aggregate FastQC/fastp metrics into one QC report |
+| 4 | BWA-MEM2 | Map reads to a reference genome |
+| 5 | samtools sort | Coordinate-sort and index the BAM |
+| 6 | FreeBayes | Per-sample variant calling from sorted BAM |
+| 7 | FreeBayes report | Per-sample SNP/indel/variant summary text report |
 
 ## Repository layout
 
@@ -34,17 +29,18 @@ nf-wgs/
 ├── modules/
 │   ├── fastqc.nf
 │   ├── fastp.nf
+│   ├── multiqc.nf
 │   ├── bwa_mem.nf
 │   ├── samtools_sort.nf
-│   ├── mark_duplicates.nf
-│   ├── base_recalibrator.nf
-│   ├── apply_bqsr.nf
-│   ├── haplotypecaller.nf
-│   ├── genotype_gvcfs.nf
-│   └── variant_filtration.nf
+│   └── freebayes.nf
 └── test/
     ├── samplesheet.csv        # Example samplesheet
-    └── data/                  # Placeholder FASTQ files for stub runs
+    ├── data/                  # Placeholder FASTQ files for stub runs
+    └── mini_ecoli/
+        ├── get_data.sh        # Downloads a small public E. coli dataset + reference
+        ├── samplesheet.csv
+        ├── reads/
+        └── ref/
 ```
 
 ## Samplesheet format
@@ -66,8 +62,6 @@ nextflow run main.nf \
     --input      samplesheet.csv \
     --outdir     results \
     --genome     /path/to/genome.fa \
-    --known_sites /path/to/dbsnp.vcf.gz \
-    --known_sites_tbi /path/to/dbsnp.vcf.gz.tbi \
     -profile docker
 ```
 
@@ -82,7 +76,12 @@ any real tools.
 nextflow run main.nf -stub \
     --input      test/samplesheet.csv \
     --outdir     test_results \
-    --genome     test/data/genome.fa
+    --genome     test/data/genome.fa \
+    --genome_index .
+```
+
+```bash
+nextflow run main.nf -stub --input test/samplesheet.csv --outdir test_results --genome test/data/genome.fa --genome_index .
 ```
 
 ## Configuration
@@ -91,6 +90,33 @@ Process-specific resource settings (CPUs, memory, wall-time, container image) ar
 stored in `conf/processes.config`, which is automatically included by
 `nextflow.config`.  Override any value on the command line with `-process.withName`
 or by editing the config file directly.
+
+### mini_ecoli test profile
+
+This repository includes a lightweight public E. coli test profile:
+
+```bash
+chmod +x test/mini_ecoli/get_data.sh
+./test/mini_ecoli/get_data.sh
+
+nextflow run main.nf \
+    -profile mini_ecoli,docker
+```
+
+Notes:
+- Outputs are written to `test_results_mini_ecoli/` by default.
+
+### freebayes_test example run
+
+Use this command when you want an explicit FreeBayes smoke-test style run name and output folder:
+
+```bash
+nextflow run main.nf \
+    -profile mini_ecoli,docker \
+    --outdir test_results_freebayes_test
+```
+
+This uses the same mini E. coli inputs and reference from the `mini_ecoli` profile, but writes results to `test_results_freebayes_test/`.
 
 ## Output
 
@@ -101,12 +127,8 @@ process (lower-cased), e.g.:
 results/
 ├── fastqc/
 ├── fastp/
+├── multiqc/
 ├── bwa_mem/
 ├── samtools_sort/
-├── mark_duplicates/
-├── base_recalibrator/
-├── apply_bqsr/
-├── haplotypecaller/
-├── genotype_gvcfs/
-└── variant_filtration/
+└── freebayes/
 ```
