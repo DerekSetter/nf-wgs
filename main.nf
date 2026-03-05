@@ -73,7 +73,6 @@ workflow {
      input       : ${params.input}
      outdir      : ${params.outdir}
      genome      : ${params.genome}
-        genome_index: ${params.genome_index ?: params.genome}
     ============================================================
     """.stripIndent()
 
@@ -82,16 +81,11 @@ workflow {
 
     // Resolve reference genome files
     ch_genome      = file(params.genome,                checkIfExists: true)
-    // Resolve BWA-MEM2 index prefix (defaults to genome path)
-    ch_genome_index = params.genome_index
-        ? params.genome_index
-        : params.genome
 
     // Run the bioinformatics workflow
     WGS(
         ch_reads,
-        ch_genome,
-        ch_genome_index
+        ch_genome
     )
 
 }

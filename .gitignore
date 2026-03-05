@@ -4,6 +4,7 @@ results/
 .nextflow
 test/mini_ecoli/reads/*
 test/mini_ecoli/ref/*
+test_results_ecoli
 
 # Nextflow runtime files
 .nextflow*

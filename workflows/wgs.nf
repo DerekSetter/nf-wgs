@@ -24,7 +24,6 @@ workflow WGS {
     take:
     reads           // channel: [ val(sample_id), path(fastq_1), path(fastq_2) ]
     genome          // path: reference genome FASTA
-    genome_index    // val: BWA-MEM2 index prefix (defaults to genome path)
 
     main:
 
@@ -46,12 +45,11 @@ workflow WGS {
     // ----- Map trimmed reads to reference genome ------------------------------
     BWA_MEM(
         FASTP.out.trimmed_reads,
-        genome,
-        genome_index
+        genome
     )
 
     // ----- Coordinate-sort and index the BAM ----------------------------------
-    SAMTOOLS_SORT(BWA_MEM.out.bam)
+    SAMTOOLS_SORT(BWA_MEM.out.sam)
 
     // ----- Variant calling and reporting ---------------------------------------
     FREEBAYES(
