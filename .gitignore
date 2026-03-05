@@ -1,0 +1,16 @@
+work/
+test_results/
+results/
+.nextflow
+
+# Nextflow runtime files
+.nextflow*
+*.nextflow.log*
+
+# Common Nextflow outputs/reports
+trace.txt
+timeline.html
+report.html
+dag.html
+dag.png
+dag.svg
