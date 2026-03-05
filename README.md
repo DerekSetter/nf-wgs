@@ -12,6 +12,8 @@ The pipeline covers the following steps in order:
 | 2 | fastp | Adapter trimming and quality filtering |
 | 3 | BWA-MEM2 | Map reads to a reference genome |
 | 4 | samtools sort | Coordinate-sort and index the BAM |
+
+**change to sambamba and freebayes**
 | 5 | GATK MarkDuplicates | Mark (and flag) PCR duplicates |
 | 6 | GATK BaseRecalibrator | Compute base quality score recalibration table |
 | 7 | GATK ApplyBQSR | Apply BQSR table to produce a recalibrated BAM |
