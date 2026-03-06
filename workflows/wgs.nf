@@ -8,6 +8,7 @@
         FASTP           → adapter trimming and quality filtering
         BWA_MEM         → map reads to reference genome
         SAMTOOLS_SORT   → coordinate-sort and index BAM
+        SAMBAMBA_MARKDUP → mark duplicate reads
         FREEBAYES       → per-sample variant calling and summary report
 ----------------------------------------------------------------------------------------
 */
@@ -17,6 +18,7 @@ include { FASTP             } from '../modules/fastp'
 include { MULTIQC           } from '../modules/multiqc'
 include { BWA_MEM           } from '../modules/bwa_mem'
 include { SAMTOOLS_SORT     } from '../modules/samtools_sort'
+include { SAMBAMBA_MARKDUP  } from '../modules/sambamba_markdup'
 include { FREEBAYES         } from '../modules/freebayes'
 
 workflow WGS {
@@ -51,9 +53,12 @@ workflow WGS {
     // ----- Coordinate-sort and index the BAM ----------------------------------
     SAMTOOLS_SORT(BWA_MEM.out.sam)
 
+    // ----- Mark duplicate reads ------------------------------------------------
+    SAMBAMBA_MARKDUP(SAMTOOLS_SORT.out.sorted_bam)
+
     // ----- Variant calling and reporting ---------------------------------------
     FREEBAYES(
-        SAMTOOLS_SORT.out.sorted_bam,
+        SAMBAMBA_MARKDUP.out.bam,
         genome
     )
 
@@ -64,7 +69,8 @@ workflow WGS {
     fastp_json        = FASTP.out.json
     multiqc_report    = MULTIQC.out.report
     multiqc_data      = MULTIQC.out.data
-    final_bam         = SAMTOOLS_SORT.out.sorted_bam
+    markdup_metrics   = SAMBAMBA_MARKDUP.out.metrics
+    final_bam         = SAMBAMBA_MARKDUP.out.bam
     variants_vcf      = FREEBAYES.out.vcf
     variant_report    = FREEBAYES.out.report
 

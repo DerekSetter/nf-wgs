@@ -13,8 +13,9 @@ The pipeline covers the following steps in order:
 | 3 | MultiQC | Aggregate FastQC/fastp metrics into one QC report |
 | 4 | BWA-MEM2 | Map reads to a reference genome |
 | 5 | samtools sort | Coordinate-sort and index the BAM |
-| 6 | FreeBayes | Per-sample variant calling from sorted BAM |
-| 7 | FreeBayes report | Per-sample SNP/indel/variant summary text report |
+| 6 | Sambamba markdup | Mark duplicate reads in sorted BAM |
+| 7 | FreeBayes | Per-sample variant calling from duplicate-marked BAM |
+| 8 | FreeBayes report | Per-sample SNP/indel/variant summary text report |
 
 ## Repository layout
 
@@ -32,6 +33,7 @@ nf-wgs/
 │   ├── multiqc.nf
 │   ├── bwa_mem.nf
 │   ├── samtools_sort.nf
+│   ├── sambamba_markdup.nf
 │   └── freebayes.nf
 └── test/
     ├── samplesheet.csv        # Example samplesheet
@@ -130,5 +132,6 @@ results/
 ├── multiqc/
 ├── bwa_mem/
 ├── samtools_sort/
+├── sambamba_markdup/
 └── freebayes/
 ```
