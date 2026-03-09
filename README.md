@@ -69,6 +69,14 @@ nextflow run main.nf \
 
 ### Full run (Apptainer, HPC)
 
+Prerequisite: `apptainer` must be available in the shell `PATH` **before** running `nextflow` (image pulls are performed by the Nextflow launcher).
+
+```bash
+export PATH="$HOME/software/bin:$PATH"
+which apptainer
+apptainer --version
+```
+
 ```bash
 nextflow run main.nf \
     --input      samplesheet.csv \
