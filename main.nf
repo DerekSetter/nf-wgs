@@ -24,6 +24,9 @@ nextflow.enable.dsl = 2
 
 include { WGS } from './workflows/wgs'
 
+import java.nio.file.Paths
+import java.nio.file.Files
+
 // ── Parameter validation ──────────────────────────────────────────────────────
 
 def validateParams() {
@@ -49,13 +52,33 @@ def validateParams() {
 //  Expected columns: sample_id, fastq_1, fastq_2
 
 def parseSamplesheet(csv_path) {
+    def samplesheet = file(csv_path, checkIfExists: true)
+    def samplesheetDir = samplesheet.parent
+
+    def resolveInputPath = { String rawPath ->
+        def path = Paths.get(rawPath)
+        if (path.isAbsolute()) {
+            return path.toString()
+        }
+
+        def candidates = [
+            samplesheetDir.resolve(rawPath),
+            Paths.get(projectDir.toString()).resolve(rawPath),
+            Paths.get(rawPath)
+        ]
+
+        def existing = candidates.find { Files.exists(it) }
+        return (existing ?: samplesheetDir.resolve(rawPath)).toString()
+    }
+
     channel
-        .fromPath(csv_path)
+        .fromPath(samplesheet)
         .splitCsv(header: true, strip: true)
         .map { row ->
             def sample_id = row.sample_id ?: row.sample
-            def fastq_1   = file(row.fastq_1, checkIfExists: true)
-            def fastq_2   = file(row.fastq_2, checkIfExists: true)
+            def fastq_1 = file(resolveInputPath(row.fastq_1), checkIfExists: true)
+            def fastq_2 = file(resolveInputPath(row.fastq_2), checkIfExists: true)
+
             tuple(sample_id, fastq_1, fastq_2)
         }
 }
