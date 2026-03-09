@@ -57,7 +57,7 @@ SAMPLE_02,/path/to/SAMPLE_02_R1.fastq.gz,/path/to/SAMPLE_02_R2.fastq.gz
 
 ## Usage
 
-### Full run (requires all tools installed or containers enabled)
+### Full run (Docker, local)
 
 ```bash
 nextflow run main.nf \
@@ -65,6 +65,32 @@ nextflow run main.nf \
     --outdir     results \
     --genome     /path/to/genome.fa \
     -profile docker
+```
+
+### Full run (Apptainer, HPC)
+
+```bash
+nextflow run main.nf \
+    --input      samplesheet.csv \
+    --outdir     results \
+    --genome     /path/to/genome.fa \
+    -profile apptainer
+```
+
+If your cluster uses Slurm and you want executor + container runtime in one profile:
+
+```bash
+nextflow run main.nf \
+    --input      samplesheet.csv \
+    --outdir     results \
+    --genome     /path/to/genome.fa \
+    -profile hpc_apptainer
+```
+
+Tip: set a writable Apptainer cache on HPC login/compute nodes (or use the default `.apptainer/` inside this project):
+
+```bash
+export NXF_APPTAINER_CACHEDIR=$HOME/.apptainer
 ```
 
 ### Stub / dry-run (no bioinformatic tools needed)
@@ -103,6 +129,13 @@ chmod +x test/mini_ecoli/get_data.sh
 
 nextflow run main.nf \
     -profile mini_ecoli,docker
+```
+
+To run the same mini test on HPC with Apptainer:
+
+```bash
+nextflow run main.nf \
+    -profile mini_ecoli,apptainer
 ```
 
 Notes:
