@@ -6,6 +6,7 @@ test/mini_ecoli/reads/*
 test/mini_ecoli/ref/*
 test_results_ecoli
 test_results_mini_ecoli
+.apptainer
 
 # Nextflow runtime files
 .nextflow*

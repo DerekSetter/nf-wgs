@@ -77,15 +77,17 @@ nextflow run main.nf \
     -profile apptainer
 ```
 
-If your cluster uses Slurm and you want executor + container runtime in one profile:
+If your HPC requires a specific Apptainer binary path, use:
 
 ```bash
 nextflow run main.nf \
     --input      samplesheet.csv \
     --outdir     results \
     --genome     /path/to/genome.fa \
-    -profile hpc_apptainer
+    -profile hpc_apptainer_fullpath
 ```
+
+This profile prepends `~/software/bin` to `PATH`, so Nextflow resolves `apptainer` as `~/software/bin/apptainer`.
 
 Tip: set a writable Apptainer cache on HPC login/compute nodes (or use the default `.apptainer/` inside this project):
 
