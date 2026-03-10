@@ -9,7 +9,6 @@
         BWA_MEM         → map reads to reference genome + MAPQ filter + sort/index
         SAMBAMBA_MARKDUP → mark duplicate reads
         FREEBAYES       → joint variant calling across all samples
-        GIMBLE_PREPROCESS (optional) → SNP-only VCF + callable-sites BED
 ----------------------------------------------------------------------------------------
 */
 
@@ -19,7 +18,6 @@ include { MULTIQC           } from '../modules/multiqc'
 include { BWA_MEM           } from '../modules/bwa_mem'
 include { SAMBAMBA_MARKDUP  } from '../modules/sambamba_markdup'
 include { FREEBAYES         } from '../modules/freebayes'
-include { GIMBLE_PREPROCESS } from '../modules/gimble_preprocess'
 
 workflow WGS {
 
@@ -63,17 +61,6 @@ workflow WGS {
         genome
     )
 
-    // ----- Optional gIMble preprocessing ---------------------------------------
-    ch_gimble = channel.empty()
-    if (params.run_gimble) {
-        GIMBLE_PREPROCESS(
-            FREEBAYES.out.vcf,
-            genome,
-            ch_markdup_bams
-        )
-        ch_gimble = GIMBLE_PREPROCESS.out.result
-    }
-
     emit:
     fastqc_html       = FASTQC.out.html
     fastqc_zip        = FASTQC.out.zip
@@ -85,6 +72,5 @@ workflow WGS {
     final_bam         = SAMBAMBA_MARKDUP.out.bam
     variants_vcf      = FREEBAYES.out.vcf
     variant_report    = FREEBAYES.out.report
-    gimble_result     = ch_gimble
 
 }

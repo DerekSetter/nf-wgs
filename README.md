@@ -15,7 +15,6 @@ The pipeline covers the following steps in order:
 | 5 | Sambamba markdup | Mark duplicate reads in sorted BAM |
 | 6 | FreeBayes parallel | Joint variant calling across all duplicate-marked BAMs |
 | 7 | FreeBayes report | Joint SNP/indel/variant summary text report |
-| 8 (optional) | gIMble preprocess | Produce filtered SNP-focused outputs and callable-site files |
 
 ## Repository layout
 
@@ -33,8 +32,7 @@ nf-wgs/
 │   ├── multiqc.nf
 │   ├── bwa_mem.nf
 │   ├── sambamba_markdup.nf
-│   ├── freebayes.nf
-│   └── gimble_preprocess.nf
+│   └── freebayes.nf
 └── test/
     ├── samplesheet.csv        # Example samplesheet
     ├── data/                  # Placeholder FASTQ files for stub runs
@@ -134,18 +132,6 @@ Defaults now follow the Alex workflow choices:
 - `--freebayes_ploidy 2`
 - `--freebayes_haplotype_length -1`
 
-Optional gIMble preprocess stage:
-
-```bash
-nextflow run main.nf \
-    --input samplesheet.csv \
-    --outdir results \
-    --genome /path/to/genome.fa \
-    --run_gimble true \
-    --gimble_executable /path/to/gIMble \
-    -profile docker
-```
-
 ## Configuration
 
 Process-specific resource settings (CPUs, memory, wall-time, container image) are
@@ -199,6 +185,5 @@ results/
 ├── multiqc/
 ├── bwa_mem/
 ├── sambamba_markdup/
-├── freebayes/
-└── gimble_preprocess/   # only when --run_gimble true
+└── freebayes/
 ```
