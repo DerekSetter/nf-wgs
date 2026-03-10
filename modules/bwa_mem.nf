@@ -1,6 +1,6 @@
 /*
 ========================================================================================
-    BWA_MEM - Map paired-end reads to a reference genome using BWA-MEM2
+    BWA_MEM - Map paired-end reads to a reference genome and produce filtered, sorted BAM
 ========================================================================================
 */
 
@@ -13,7 +13,7 @@ process BWA_MEM {
     path  genome
 
     output:
-    tuple val(sample_id), path("${sample_id}.sam"), emit: sam
+    tuple val(sample_id), path("${sample_id}.sorted.bam"), path("${sample_id}.sorted.bam.bai"), emit: bam
 
  
     script:
@@ -24,18 +24,22 @@ process BWA_MEM {
 
     bwa-mem2 mem \\
         -t ${task.cpus} \\
-        -R '@RG\\tID:${sample_id}\\tSM:${sample_id}\\tPL:ILLUMINA\\tLB:lib1' \\
+        -R '@RG\\tID:${sample_id}\\tSM:${sample_id}' \\
         ${genome} \\
         ${fastq_1} \\
         ${fastq_2} \\
-        > ${sample_id}.sam
+        | samtools view -q ${params.mapq_filter} -b - \\
+        | samtools sort -@ ${task.cpus} -o ${sample_id}.sorted.bam -
+
+    samtools index ${sample_id}.sorted.bam
     """
 
 
     stub:
     """
-    echo "bwa-mem2 mem -t ${task.cpus} -R '@RG\\tID:${sample_id}\\tSM:${sample_id}\\tPL:ILLUMINA\\tLB:lib1' ${genome} ${fastq_1} ${fastq_2} > ${sample_id}.sam"
-    touch ${sample_id}.sam
+    echo "bwa-mem2 mem -t ${task.cpus} -R '@RG\\tID:${sample_id}\\tSM:${sample_id}' ${genome} ${fastq_1} ${fastq_2} | samtools view -q ${params.mapq_filter} -b - | samtools sort -@ ${task.cpus} -o ${sample_id}.sorted.bam - && samtools index ${sample_id}.sorted.bam"
+    touch ${sample_id}.sorted.bam
+    touch ${sample_id}.sorted.bam.bai
     """
 
 }

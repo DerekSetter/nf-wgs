@@ -6,10 +6,10 @@
 
         FASTQC          → quality control of raw reads
         FASTP           → adapter trimming and quality filtering
-        BWA_MEM         → map reads to reference genome
-        SAMTOOLS_SORT   → coordinate-sort and index BAM
+        BWA_MEM         → map reads to reference genome + MAPQ filter + sort/index
         SAMBAMBA_MARKDUP → mark duplicate reads
-        FREEBAYES       → per-sample variant calling and summary report
+        FREEBAYES       → joint variant calling across all samples
+        GIMBLE_PREPROCESS (optional) → SNP-only VCF + callable-sites BED
 ----------------------------------------------------------------------------------------
 */
 
@@ -17,9 +17,9 @@ include { FASTQC            } from '../modules/fastqc'
 include { FASTP             } from '../modules/fastp'
 include { MULTIQC           } from '../modules/multiqc'
 include { BWA_MEM           } from '../modules/bwa_mem'
-include { SAMTOOLS_SORT     } from '../modules/samtools_sort'
 include { SAMBAMBA_MARKDUP  } from '../modules/sambamba_markdup'
 include { FREEBAYES         } from '../modules/freebayes'
+include { GIMBLE_PREPROCESS } from '../modules/gimble_preprocess'
 
 workflow WGS {
 
@@ -44,23 +44,35 @@ workflow WGS {
 
     MULTIQC(ch_multiqc_files)
 
-    // ----- Map trimmed reads to reference genome ------------------------------
+    // ----- Map trimmed reads to reference genome (MAPQ filter + sort/index) ---
     BWA_MEM(
         FASTP.out.trimmed_reads,
         genome
     )
 
-    // ----- Coordinate-sort and index the BAM ----------------------------------
-    SAMTOOLS_SORT(BWA_MEM.out.sam)
-
     // ----- Mark duplicate reads ------------------------------------------------
-    SAMBAMBA_MARKDUP(SAMTOOLS_SORT.out.sorted_bam)
+    SAMBAMBA_MARKDUP(BWA_MEM.out.bam)
 
-    // ----- Variant calling and reporting ---------------------------------------
+    // ----- Joint variant calling and reporting ---------------------------------
+    ch_markdup_bams = SAMBAMBA_MARKDUP.out.bam
+        .map { _sample_id, bam, _bai -> bam }
+        .collect()
+
     FREEBAYES(
-        SAMBAMBA_MARKDUP.out.bam,
+        ch_markdup_bams,
         genome
     )
+
+    // ----- Optional gIMble preprocessing ---------------------------------------
+    ch_gimble = channel.empty()
+    if (params.run_gimble) {
+        GIMBLE_PREPROCESS(
+            FREEBAYES.out.vcf,
+            genome,
+            ch_markdup_bams
+        )
+        ch_gimble = GIMBLE_PREPROCESS.out.result
+    }
 
     emit:
     fastqc_html       = FASTQC.out.html
@@ -73,5 +85,6 @@ workflow WGS {
     final_bam         = SAMBAMBA_MARKDUP.out.bam
     variants_vcf      = FREEBAYES.out.vcf
     variant_report    = FREEBAYES.out.report
+    gimble_result     = ch_gimble
 
 }

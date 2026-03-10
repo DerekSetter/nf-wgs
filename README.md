@@ -9,13 +9,13 @@ The pipeline covers the following steps in order:
 | Step | Tool | Description |
 |------|------|-------------|
 | 1 | FastQC | Quality control of raw reads |
-| 2 | fastp | Adapter trimming and quality filtering |
+| 2 | fastp | Adapter trimming and quality filtering (`--detect_adapter_for_pe`, cut front/tail, quality window) |
 | 3 | MultiQC | Aggregate FastQC/fastp metrics into one QC report |
-| 4 | BWA-MEM2 | Map reads to a reference genome |
-| 5 | samtools sort | Coordinate-sort and index the BAM |
-| 6 | Sambamba markdup | Mark duplicate reads in sorted BAM |
-| 7 | FreeBayes | Per-sample variant calling from duplicate-marked BAM |
-| 8 | FreeBayes report | Per-sample SNP/indel/variant summary text report |
+| 4 | BWA-MEM2 + samtools | Map reads, keep alignments with MAPQ >= 1, coordinate-sort and index BAM |
+| 5 | Sambamba markdup | Mark duplicate reads in sorted BAM |
+| 6 | FreeBayes parallel | Joint variant calling across all duplicate-marked BAMs |
+| 7 | FreeBayes report | Joint SNP/indel/variant summary text report |
+| 8 (optional) | gIMble preprocess | Produce filtered SNP-focused outputs and callable-site files |
 
 ## Repository layout
 
@@ -32,9 +32,9 @@ nf-wgs/
 │   ├── fastp.nf
 │   ├── multiqc.nf
 │   ├── bwa_mem.nf
-│   ├── samtools_sort.nf
 │   ├── sambamba_markdup.nf
-│   └── freebayes.nf
+│   ├── freebayes.nf
+│   └── gimble_preprocess.nf
 └── test/
     ├── samplesheet.csv        # Example samplesheet
     ├── data/                  # Placeholder FASTQ files for stub runs
@@ -122,6 +122,30 @@ nextflow run main.nf -stub \
 nextflow run main.nf -stub --input test/samplesheet.csv --outdir test_results --genome test/data/genome.fa --genome_index .
 ```
 
+### Alex-style tuning knobs
+
+Defaults now follow the Alex workflow choices:
+
+- `--mapq_filter 1`
+- `--freebayes_region_size 100000000`
+- `--freebayes_parallel_chunks 14`
+- `--freebayes_limit_coverage 250`
+- `--freebayes_use_best_n_alleles 8`
+- `--freebayes_ploidy 2`
+- `--freebayes_haplotype_length -1`
+
+Optional gIMble preprocess stage:
+
+```bash
+nextflow run main.nf \
+    --input samplesheet.csv \
+    --outdir results \
+    --genome /path/to/genome.fa \
+    --run_gimble true \
+    --gimble_executable /path/to/gIMble \
+    -profile docker
+```
+
 ## Configuration
 
 Process-specific resource settings (CPUs, memory, wall-time, container image) are
@@ -174,7 +198,7 @@ results/
 ├── fastp/
 ├── multiqc/
 ├── bwa_mem/
-├── samtools_sort/
 ├── sambamba_markdup/
-└── freebayes/
+├── freebayes/
+└── gimble_preprocess/   # only when --run_gimble true
 ```
