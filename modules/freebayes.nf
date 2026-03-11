@@ -11,6 +11,7 @@ process FREEBAYES {
     input:
     path bams
     path genome
+    path genome_fai
 
     output:
     path "joint.freebayes.vcf.gz",      emit: vcf
@@ -19,8 +20,12 @@ process FREEBAYES {
 
     script:
     def n_bams = bams.size()
-    def bam_args = bams.collect { bam_file -> "--bam ${bam_file}" }.join(' \\\n+        ')
+    def bam_args = bams.collect { bam_file -> "--bam ${bam_file}" }.join(' ')
     """
+    set -euo pipefail
+
+    [[ -s ${genome_fai} ]]
+
     freebayes-parallel <(fasta_generate_regions.py ${genome} ${params.freebayes_region_size}) ${params.freebayes_parallel_chunks} \
         -f ${genome} \
         --limit-coverage ${params.freebayes_limit_coverage} \
@@ -41,7 +46,7 @@ process FREEBAYES {
     {
       echo "mode=joint"
       echo "vcf=joint.freebayes.vcf.gz"
-        echo "n_bams=${n_bams}"
+      echo "n_bams=${n_bams}"
       echo "total_variants=\${total_variants}"
       echo "snps=\${snps}"
       echo "indels=\${indels}"

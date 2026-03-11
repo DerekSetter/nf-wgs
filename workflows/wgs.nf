@@ -24,6 +24,7 @@ workflow WGS {
     take:
     reads           // channel: [ val(sample_id), path(fastq_1), path(fastq_2) ]
     genome          // path: reference genome FASTA
+    genome_fai      // path: reference genome FASTA index (.fai)
 
     main:
 
@@ -58,7 +59,8 @@ workflow WGS {
 
     FREEBAYES(
         ch_markdup_bams,
-        genome
+        genome,
+        genome_fai
     )
 
     emit:
