@@ -20,8 +20,8 @@ process FREEBAYES {
 
     script:
     def n_bams = bams.size()
-    def species = (params.species ?: 'joint').toString()
-    def vcf_name = "${species}.freebayes.vcf.gz"
+    def vcf_prefix = (params.vcf_prefix ?: 'joint').toString()
+    def vcf_name = "${vcf_prefix}.freebayes.vcf.gz"
     def bam_args = bams.collect { bam_file -> "--bam ${bam_file}" }.join(' ')
     """
     set -euo pipefail
@@ -57,8 +57,8 @@ process FREEBAYES {
 
     stub:
     def n_bams = bams.size()
-    def species = (params.species ?: 'joint').toString()
-    def vcf_name = "${species}.freebayes.vcf.gz"
+    def vcf_prefix = (params.vcf_prefix ?: 'joint').toString()
+    def vcf_name = "${vcf_prefix}.freebayes.vcf.gz"
     """
     cat > joint.freebayes.vcf <<'EOF'
     ##fileformat=VCFv4.2
