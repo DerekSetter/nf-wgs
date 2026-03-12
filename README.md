@@ -126,11 +126,12 @@ Defaults now follow the Alex workflow choices:
 
 - `--mapq_filter 1`
 - `--freebayes_region_size 100000000`
-- `--freebayes_parallel_chunks 14`
+- `--freebayes_parallel_chunks 8`
 - `--freebayes_limit_coverage 250`
 - `--freebayes_use_best_n_alleles 8`
 - `--freebayes_ploidy 2`
 - `--freebayes_haplotype_length -1`
+- `--species joint` (produces `joint.freebayes.vcf.gz`; set e.g. `--species papilio` for `papilio.freebayes.vcf.gz`)
 
 ## Configuration
 
