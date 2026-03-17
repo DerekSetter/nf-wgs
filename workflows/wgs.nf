@@ -20,6 +20,7 @@ include { SAMBAMBA_MARKDUP  } from '../modules/sambamba_markdup'
 include { FREEBAYES } from '../modules/freebayes'
 include { FREEBAYES_BASIC } from '../modules/freebayes'
 include { FREEBAYES_PARALLEL_BASIC } from '../modules/freebayes'
+include { GIMBLEPREP } from '../modules/gimbleprep'
 
 workflow WGS {
 
@@ -64,6 +65,8 @@ workflow WGS {
         .map { _sample_id, bam, bai -> [bam, bai] }
         .collect()
 
+
+
     
     FREEBAYES(
         ch_markdup_all,
@@ -72,6 +75,14 @@ workflow WGS {
         genome_fai
     )
     
+    // ----- Prepare alignments with gimbleprep ----------------------------------
+    GIMBLEPREP(
+        ch_markdup_all,
+        ch_markdup_bams,
+        genome,
+        genome_fai,
+        FREEBAYES.out.vcf
+    )
 
     /*
     FREEBAYES_BASIC(
@@ -106,5 +117,13 @@ workflow WGS {
     // variant_report    = FREEBAYES_BASIC.out.report
     // variants_vcf      = FREEBAYES_PARALLEL_BASIC.out.vcf
     // variant_report    = FREEBAYES_PARALLEL_BASIC.out.report
+    gimbleprep_record = GIMBLEPREP.out.record
+    gimble_bed        = GIMBLEPREP.out.bed
+    gimble_coverage   = GIMBLEPREP.out.coverage_summary
+    gimble_genomefile = GIMBLEPREP.out.genomefile
+    gimble_log        = GIMBLEPREP.out.log
+    gimble_vcf        = GIMBLEPREP.out.vcf
+    gimble_samples    = GIMBLEPREP.out.samples
+    gimble_vcf_index  = GIMBLEPREP.out.vcf_index
 
 }
