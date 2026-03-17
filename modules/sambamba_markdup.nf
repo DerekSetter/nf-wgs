@@ -23,7 +23,7 @@ process SAMBAMBA_MARKDUP {
         --tmpdir . \
         ${bam} \
         ${sample_id}.markdup.bam \
-        > ${sample_id}.markdup.metrics.txt
+        > ${sample_id}.markdup.metrics.txt 2>&1
 
     sambamba index \
         --nthreads ${task.cpus} \
@@ -32,7 +32,7 @@ process SAMBAMBA_MARKDUP {
 
     stub:
     """
-    echo "sambamba markdup --nthreads ${task.cpus} --overflow-list-size 600000 --tmpdir . ${bam} ${sample_id}.markdup.bam > ${sample_id}.markdup.metrics.txt"
+    echo "sambamba markdup --nthreads ${task.cpus} --overflow-list-size 600000 --tmpdir . ${bam} ${sample_id}.markdup.bam > ${sample_id}.markdup.metrics.txt 2>&1"
     echo "sambamba index --nthreads ${task.cpus} ${sample_id}.markdup.bam"
     touch ${sample_id}.markdup.bam
     touch ${sample_id}.markdup.bam.bai
