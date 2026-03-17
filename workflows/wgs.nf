@@ -17,7 +17,9 @@ include { FASTP             } from '../modules/fastp'
 include { MULTIQC           } from '../modules/multiqc'
 include { BWA_MEM           } from '../modules/bwa_mem'
 include { SAMBAMBA_MARKDUP  } from '../modules/sambamba_markdup'
-include { FREEBAYES         } from '../modules/freebayes'
+include { FREEBAYES } from '../modules/freebayes'
+include { FREEBAYES_BASIC } from '../modules/freebayes'
+include { FREEBAYES_PARALLEL_BASIC } from '../modules/freebayes'
 
 workflow WGS {
 
@@ -57,11 +59,37 @@ workflow WGS {
         .map { _sample_id, bam, _bai -> bam }
         .collect()
 
+    // Also collect the corresponding index files so they get staged into downstream processes
+    ch_markdup_all = SAMBAMBA_MARKDUP.out.bam
+        .map { _sample_id, bam, bai -> [bam, bai] }
+        .collect()
+
+    
     FREEBAYES(
+        ch_markdup_all,
         ch_markdup_bams,
         genome,
         genome_fai
     )
+    
+
+    /*
+    FREEBAYES_BASIC(
+        ch_markdup_all,
+        ch_markdup_bams,
+        genome,
+        genome_fai
+    )
+    */
+
+    /*
+    FREEBAYES_PARALLEL_BASIC(
+        ch_markdup_all,
+        ch_markdup_bams,
+        genome,
+        genome_fai
+    )
+    */
 
     emit:
     fastqc_html       = FASTQC.out.html
@@ -74,5 +102,9 @@ workflow WGS {
     final_bam         = SAMBAMBA_MARKDUP.out.bam
     variants_vcf      = FREEBAYES.out.vcf
     variant_report    = FREEBAYES.out.report
+    // variants_vcf      = FREEBAYES_BASIC.out.vcf
+    // variant_report    = FREEBAYES_BASIC.out.report
+    // variants_vcf      = FREEBAYES_PARALLEL_BASIC.out.vcf
+    // variant_report    = FREEBAYES_PARALLEL_BASIC.out.report
 
 }
