@@ -18,8 +18,8 @@ include { MULTIQC           } from '../modules/multiqc'
 include { BWA_MEM           } from '../modules/bwa_mem'
 include { SAMBAMBA_MARKDUP  } from '../modules/sambamba_markdup'
 include { FREEBAYES } from '../modules/freebayes'
-include { FREEBAYES_BASIC } from '../modules/freebayes'
-include { FREEBAYES_PARALLEL_BASIC } from '../modules/freebayes'
+// include { FREEBAYES_BASIC } from '../modules/freebayes'
+// include { FREEBAYES_PARALLEL_BASIC } from '../modules/freebayes'
 include { GIMBLEPREP } from '../modules/gimbleprep'
 
 workflow WGS {
