@@ -19,10 +19,11 @@ process FREEBAYES {
     path "freebayes.done",              emit: done
 
     script:
-    def n_bams = bams.size()
+    def bam_list = (bams instanceof List) ? bams : [bams]
+    def n_bams = bam_list.size()
     def vcf_prefix = (params.vcf_prefix ?: 'joint').toString()
     def vcf_name = "${vcf_prefix}.freebayes.vcf.gz"
-    def bam_args = bams.collect { bam_file -> "--bam ${bam_file}" }.join(' ')
+    def bam_args = bam_list.collect { bam_file -> "--bam ${bam_file}" }.join(' ')
     """
     set -euo pipefail
 
@@ -41,7 +42,7 @@ process FREEBAYES {
 
     touch freebayes.done
 
-    total_variants=\$(zgrep -vc '^#' ${vcf_name} || true)
+  total_variants=\$(zcat ${vcf_name} | awk '!/^#/ { c++ } END { print c+0 }')
     snps=\$(zcat ${vcf_name} | awk '!/^#/ { if(length(\$4)==1 && length(\$5)==1) c++ } END { print c+0 }')
     indels=\$(zcat ${vcf_name} | awk '!/^#/ { if(!(length(\$4)==1 && length(\$5)==1)) c++ } END { print c+0 }')
 
