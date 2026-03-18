@@ -187,4 +187,26 @@ results/
 ├── bwa_mem/
 ├── sambamba_markdup/
 └── freebayes/
+
+## Skipping trimming (optional)
+
+If your FASTQ files have already been adapter-trimmed and you want to skip the `fastp` step,
+set the `--skip_trimming` flag when running Nextflow. The entrypoint `main.nf` will select the
+alternate workflow `WGSNOTRIMMING`, which omits `FASTP` but keeps all downstream steps
+(alignment, mark-duplicates, variant calling, and gimbleprep).
+
+Examples:
+
+```bash
+# Run the normal workflow (default)
+nextflow run main.nf --input samplesheet.csv --outdir results --genome /path/to/genome.fa
+
+# Run without trimming (use raw/trimmed FASTQ as-is)
+nextflow run main.nf --input samplesheet.csv --outdir results --genome /path/to/genome.fa --skip_trimming true
+```
+
+Notes:
+- When `--skip_trimming` is set, `FASTP` outputs are not produced; `MultiQC` will be built
+    from `FASTQC` results only.
+- The downstream channel shapes are preserved so other modules do not need modification.
 ```

@@ -23,6 +23,10 @@
 nextflow.enable.dsl = 2
 
 include { WGS } from './workflows/wgs'
+include { WGSNOTRIMMING } from './workflows/wgs'
+
+// Allow users to skip the trimming step by selecting the alternate workflow
+params.skip_trimming = params.skip_trimming ?: false
 
 // ── Parameter validation ──────────────────────────────────────────────────────
 
@@ -132,11 +136,19 @@ workflow {
     ch_genome       = file(params.genome, checkIfExists: true)
     ch_genome_fai   = file(genome_fai_path, checkIfExists: true)
 
-    // Run the bioinformatics workflow
-    WGS(
-        ch_reads,
-        ch_genome,
-        ch_genome_fai
-    )
+    // Run the bioinformatics workflow (select no-trimming variant if requested)
+    if (params.skip_trimming) {
+        WGSNOTRIMMING(
+            ch_reads,
+            ch_genome,
+            ch_genome_fai
+        )
+    } else {
+        WGS(
+            ch_reads,
+            ch_genome,
+            ch_genome_fai
+        )
+    }
 
 }

@@ -127,3 +127,81 @@ workflow WGS {
     gimble_vcf_index  = GIMBLEPREP.out.vcf_index
 
 }
+
+
+workflow WGSNOTRIMMING {
+
+    take:
+    reads           // channel: [ val(sample_id), path(fastq_1), path(fastq_2) ]
+    genome          // path: reference genome FASTA
+    genome_fai      // path: reference genome FASTA index (.fai)
+
+    main:
+
+    // ----- QC raw reads -------------------------------------------------------
+    FASTQC(reads)
+
+    // ----- Skip trimming; prepare multiqc inputs from FASTQC only -------------
+    ch_multiqc_files = FASTQC.out.zip
+        .map { _sample_id, fastqc_zip -> fastqc_zip }
+        .collect()
+
+    MULTIQC(ch_multiqc_files)
+
+    // ----- Map raw reads to reference genome (MAPQ filter + sort/index) ------
+    BWA_MEM(
+        reads,
+        genome
+    )
+
+    // ----- Mark duplicate reads ------------------------------------------------
+    SAMBAMBA_MARKDUP(BWA_MEM.out.bam)
+
+    // ----- Joint variant calling and reporting ---------------------------------
+    ch_markdup_bams = SAMBAMBA_MARKDUP.out.bam
+        .map { _sample_id, bam, _bai -> bam }
+        .collect()
+
+    // Also collect the corresponding index files so they get staged into downstream processes
+    ch_markdup_all = SAMBAMBA_MARKDUP.out.bam
+        .map { _sample_id, bam, bai -> [bam, bai] }
+        .collect()
+
+
+    FREEBAYES(
+        ch_markdup_all,
+        ch_markdup_bams,
+        genome,
+        genome_fai
+    )
+
+    // ----- Prepare alignments with gimbleprep ----------------------------------
+    GIMBLEPREP(
+        ch_markdup_all,
+        ch_markdup_bams,
+        genome,
+        genome_fai,
+        FREEBAYES.out.vcf
+    )
+
+    emit:
+    fastqc_html       = FASTQC.out.html
+    fastqc_zip        = FASTQC.out.zip
+    fastp_html        = Channel.empty()
+    fastp_json        = Channel.empty()
+    multiqc_report    = MULTIQC.out.report
+    multiqc_data      = MULTIQC.out.data
+    markdup_metrics   = SAMBAMBA_MARKDUP.out.metrics
+    final_bam         = SAMBAMBA_MARKDUP.out.bam
+    variants_vcf      = FREEBAYES.out.vcf
+    variant_report    = FREEBAYES.out.report
+    gimbleprep_record = GIMBLEPREP.out.record
+    gimble_bed        = GIMBLEPREP.out.bed
+    gimble_coverage   = GIMBLEPREP.out.coverage_summary
+    gimble_genomefile = GIMBLEPREP.out.genomefile
+    gimble_log        = GIMBLEPREP.out.log
+    gimble_vcf        = GIMBLEPREP.out.vcf
+    gimble_samples    = GIMBLEPREP.out.samples
+    gimble_vcf_index  = GIMBLEPREP.out.vcf_index
+
+}
